@@ -118,8 +118,11 @@ int main (int argc, char **argv) {
         const u_char *packet; 
 
         while (pcap_next_ex(handle, &header, &packet) >= 0) {
-            dns_packet::DNSPacket my_instance(verbose, packet, header);
-            my_instance.print_simple();
+            dns_packet::DNSPacket my_instance(packet, header);
+            if (verbose) 
+                my_instance.print_verbose();
+            else
+                my_instance.print_simple();
         }
 
         pcap_close(handle);

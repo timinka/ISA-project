@@ -7,6 +7,9 @@
 #include <netinet/ether.h> 
 #include <arpa/inet.h> 
 #include <pcap.h>
+#include <cstring>
+#include <iomanip>
+#include <bitset> // tmp
 
 #include "ipv6_parser.h"
 #include "ipv4_parser.h"
@@ -14,26 +17,21 @@
 namespace dns_packet {
     class DNSPacket {
         private:
-            bool verbose;
-            std::string timestamp;
-            std::string src_ip;
-            std::string dst_ip;
-            std::string protocol;
+            std::string timestamp, src_ip, dst_ip, protocol;
             uint16_t src_port;
             uint16_t dst_port;
-            std::string identifier;
-            bool qr, opcode, aa, tc, rd, ra, ad, cd, rcode;
-            std::string question_section;
-            std::string answer_section;
-            std::string authority_section;
-            std::string additional_section;
-            // void print_verbose();
+            uint16_t identifier;
+            bool qr, aa, tc, rd, ra, ad, cd;
+            int opcode, rcode;
+            int question_num, answer_num, authority_num, additional_num;
+            std::string query_response, question_section, answer_section, authority_section, additional_section;
             void parse(const u_char *packet, struct pcap_pkthdr *header);
             uint16_t get_port_number(uint8_t* raw_port);
 
         public:
-            DNSPacket(bool verbose, const u_char *packet, struct pcap_pkthdr *header);
+            DNSPacket(const u_char *packet, struct pcap_pkthdr *header);
             void print_simple();
+            void print_verbose();
     };
 }
 

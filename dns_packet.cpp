@@ -1,8 +1,55 @@
 #include "dns_packet.h"
+#define DNS_PORT 53
+
 using namespace dns_packet;
 
-DNSPacket::DNSPacket(bool verbose, const u_char* packet, struct pcap_pkthdr *header) {
-    this->verbose = verbose;
+struct DNSHeader {
+    uint16_t identifier;       
+    uint16_t flags;
+    uint16_t question_count; 
+    uint16_t answer_count;
+    uint16_t authority_count; 
+    uint16_t additional_count; 
+};
+
+// TODO change tmp functions
+bool get_qr(uint16_t all_flags) {
+    return (all_flags >> 15) & 1;
+}
+
+int get_opcode(uint16_t all_flags) {
+    return (all_flags >> 11) & 0xF;
+}
+
+bool get_aa(uint16_t all_flags) {
+    return (all_flags >> 10) & 1; 
+}
+
+bool get_tc(uint16_t all_flags) {
+    return (all_flags >> 9) & 1;
+}
+
+bool get_rd(uint16_t all_flags) {
+    return (all_flags >> 8) & 1;
+}
+
+bool get_ra(uint16_t all_flags) {
+    return (all_flags >> 7) & 1;
+}
+
+bool get_ad(uint16_t all_flags) {
+    return (all_flags >> 5) & 1;
+}
+
+bool get_cd(uint16_t all_flags) {
+    return (all_flags >> 4) & 1;
+}
+
+int get_rcode(uint16_t all_flags) {
+    return (all_flags << 12) & 0xF;
+}
+
+DNSPacket::DNSPacket(const u_char* packet, struct pcap_pkthdr *header) {
     parse(packet, header);
 }
 
@@ -19,7 +66,7 @@ void DNSPacket::parse(const u_char *packet, struct pcap_pkthdr *header) {
     
     time_t time = header->ts.tv_sec; 
 
-    std::tm* time_info = std::gmtime(&time); // TODO localtime?
+    std::tm* time_info = std::localtime(&time); // TODO localtime?
     char buffer[20]; 
     std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", time_info);
     std::string formatted_time(buffer);
@@ -48,14 +95,43 @@ void DNSPacket::parse(const u_char *packet, struct pcap_pkthdr *header) {
 
     this->src_port = this->get_port_number(payload);
     this->dst_port = this->get_port_number(payload + 2);
+    
+    DNSHeader dns_header;
+    if (src_port == DNS_PORT || dst_port == DNS_PORT) {
+        memcpy(&dns_header, payload + 8, sizeof(DNSHeader));
+        this->question_num = ntohs(dns_header.question_count);
+        this->answer_num = ntohs(dns_header.answer_count);
+        this->authority_num = ntohs(dns_header.authority_count);
+        this->additional_num = ntohs(dns_header.additional_count);
+        this->identifier = ntohs(dns_header.identifier);
+    }
+    uint16_t flags = ntohs(dns_header.flags);
+
+    this->qr = get_qr(flags);
+    this->query_response = this->qr ? "R" : "Q";
+    this->opcode = get_opcode(flags);
+    this->aa = get_aa(flags);
+    this->tc = get_tc(flags);
+    this->rd = get_rd(flags);
+    this->ra = get_ra(flags);
+    this->ad = get_ad(flags);
+    this->cd = get_cd(flags);
+    this->rcode = get_rcode(flags);
 }
 
 void DNSPacket::print_simple() {
-    std::cout << "Timestamp: " << this->timestamp << std::endl;
-    std::cout << "Source ip: " << this->src_ip << std::endl;
-    std::cout << "Destination ip: " << this->dst_ip << std::endl;
-    std::cout << "Protocol: " << this->protocol << std::endl;
-    std::cout << "Source port: " << this->src_port << std::endl;
-    std::cout << "Destination port: " << this->dst_port << std::endl;
-    std::cout << "\n\n";
+    std::cout << this->timestamp << " " << this->src_ip << " -> " << this->dst_ip << " (" << this->query_response << " " 
+    << this->question_num << "/" << this->answer_num << "/" << this->authority_num << "/" << this->additional_num << ")" << std::endl; 
+}
+
+void DNSPacket::print_verbose() {
+    std::cout << std::dec << "Timestamp: " << this->timestamp << std::endl;
+    std::cout << "SrcIP: " << this->src_ip << std::endl;
+    std::cout << "DstIP: " << this->dst_ip << std::endl;
+    std::cout << "SrcPort: " << this->protocol << "/" << this->src_port << std::endl;
+    std::cout << "DstPort: " <<  this->protocol << "/" << this->dst_port << std::endl;
+    std::cout << "Identifier: 0x" << std::setfill ('0') << std::hex << this->identifier << std::endl;
+    std::cout << "Flags: QR=" << this->qr << ", OPCODE=" << this->opcode << ", AA=" << this->aa << ", TC=" << this->tc 
+    << ", RD=" << this->rd << ", RA=" << this->ra << ", AD=" << this->ra << ", CD=" << this->cd << ", RCODE=" << this->rcode << std::endl << std::endl;  
+    // TODO MORE
 }

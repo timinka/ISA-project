@@ -1,7 +1,7 @@
 #include "ipv4_parser.h"
 
 std::string parse_ipv4_address(uint8_t* raw_ip) {
-    char ip[INET6_ADDRSTRLEN];
+    char ip[INET_ADDRSTRLEN];
     const char* result = inet_ntop(AF_INET, raw_ip, ip, sizeof(ip));
     return std::string(result == nullptr ? "" : result);
 }

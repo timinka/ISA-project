@@ -1,4 +1,14 @@
+#include <iomanip>
+#include <netinet/udp.h>  
+#include <netinet/ether.h> 
+#include <arpa/inet.h> 
+#include <cstring>
+#include <pcap.h>
+#include "ipv6_parser.h"
+#include "ipv4_parser.h"
 #include "dns_packet.h"
+#include "my_exception.h"
+
 #define DNS_PORT 53
 
 using namespace dns_packet;
@@ -46,10 +56,11 @@ bool get_cd(uint16_t all_flags) {
 }
 
 int get_rcode(uint16_t all_flags) {
-    return (all_flags << 12) & 0xF;
+    return all_flags & 0xF;
 }
 
-DNSPacket::DNSPacket(const u_char* packet, struct pcap_pkthdr *header) {
+DNSPacket::DNSPacket(const u_char* packet, struct pcap_pkthdr *header, bool verbose) {
+    this->verbose = verbose;
     parse(packet, header);
 }
 
@@ -86,27 +97,35 @@ void DNSPacket::parse(const u_char *packet, struct pcap_pkthdr *header) {
     }
 
     // TODO change number for variable
-    // TCP or UDP protocol used
-    if (protocol == 0x06) {
-        this->protocol = "TCP";
-    } else if (protocol == 0x11) {
+    // Check UDP protocol used
+    if (protocol == 0x11) {
         this->protocol = "UDP";
+    } else {
+        // protocol == 0x06 // TCP
+        throw IgnorePacket();
     }
 
     this->src_port = this->get_port_number(payload);
     this->dst_port = this->get_port_number(payload + 2);
     
-    DNSHeader dns_header;
-    if (src_port == DNS_PORT || dst_port == DNS_PORT) {
-        memcpy(&dns_header, payload + 8, sizeof(DNSHeader));
-        this->question_num = ntohs(dns_header.question_count);
-        this->answer_num = ntohs(dns_header.answer_count);
-        this->authority_num = ntohs(dns_header.authority_count);
-        this->additional_num = ntohs(dns_header.additional_count);
-        this->identifier = ntohs(dns_header.identifier);
+    DNSHeader *dns_header;
+    if (src_port != DNS_PORT && dst_port != DNS_PORT) {
+        // TODO not a DNS packet - raise DNSPacketException
+        throw IgnorePacket();
     }
-    uint16_t flags = ntohs(dns_header.flags);
 
+    uint8_t* dns_packet_begin = payload + 8;
+    dns_header = (DNSHeader *)(dns_packet_begin);
+    // info from dns header
+    this->question_num = ntohs(dns_header->question_count);
+    this->answer_num = ntohs(dns_header->answer_count);
+    this->authority_num = ntohs(dns_header->authority_count);
+    this->additional_num = ntohs(dns_header->additional_count);
+    this->identifier = ntohs(dns_header->identifier);
+
+    uint16_t flags = ntohs(dns_header->flags);
+
+    // get flags separetely
     this->qr = get_qr(flags);
     this->query_response = this->qr ? "R" : "Q";
     this->opcode = get_opcode(flags);
@@ -117,6 +136,14 @@ void DNSPacket::parse(const u_char *packet, struct pcap_pkthdr *header) {
     this->ad = get_ad(flags);
     this->cd = get_cd(flags);
     this->rcode = get_rcode(flags);
+
+    if(!this->verbose) { // TODO
+        return; //  this is enough information for simple print
+    }
+
+    uint8_t* current_pointer = dns_packet_begin + sizeof(DNSHeader); // poiter to start of Question/Answer/Authority/Additional section
+
+    this->sections = std::make_unique<dns_sections::DNSSections>(this->question_num, this->answer_num, this->authority_num, this->additional_num, current_pointer, dns_packet_begin);
 }
 
 void DNSPacket::print_simple() {
@@ -130,8 +157,8 @@ void DNSPacket::print_verbose() {
     std::cout << "DstIP: " << this->dst_ip << std::endl;
     std::cout << "SrcPort: " << this->protocol << "/" << this->src_port << std::endl;
     std::cout << "DstPort: " <<  this->protocol << "/" << this->dst_port << std::endl;
-    std::cout << "Identifier: 0x" << std::setfill ('0') << std::hex << this->identifier << std::endl;
-    std::cout << "Flags: QR=" << this->qr << ", OPCODE=" << this->opcode << ", AA=" << this->aa << ", TC=" << this->tc 
+    std::cout << "Identifier: 0x" << std::setfill ('0') << std::setw(4) << std::hex << this->identifier << std::endl;
+    std::cout << "Flags: QR=" << std::dec << this->qr << ", OPCODE=" << this->opcode << ", AA=" << this->aa << ", TC=" << this->tc 
     << ", RD=" << this->rd << ", RA=" << this->ra << ", AD=" << this->ra << ", CD=" << this->cd << ", RCODE=" << this->rcode << std::endl << std::endl;  
     // TODO MORE
 }

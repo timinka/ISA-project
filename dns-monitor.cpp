@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <iostream>
 #include <unistd.h>
 #include <pcap/pcap.h>
 #include "dns_packet.h"
@@ -118,11 +119,14 @@ int main (int argc, char **argv) {
         const u_char *packet; 
 
         while (pcap_next_ex(handle, &header, &packet) >= 0) {
-            dns_packet::DNSPacket my_instance(packet, header);
-            if (verbose) 
-                my_instance.print_verbose();
-            else
-                my_instance.print_simple();
+            // try:
+                dns_packet::DNSPacket my_instance(packet, header, verbose);
+                if (verbose) {
+                    my_instance.print_verbose();
+                } else {
+                    my_instance.print_simple();
+                }
+            // catch ...
         }
 
         pcap_close(handle);

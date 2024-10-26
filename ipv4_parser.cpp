@@ -1,3 +1,15 @@
+/***
+ * ISA PROJECT
+ * @file ipv4_parser.cpp
+ * @author Tímea Adamčíková (xadamc09)
+ */
+
+#include <stdint.h>
+#include <string>
+#include <iostream>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+
 #include "ipv4_parser.h"
 
 std::string parse_ipv4_address(uint8_t* raw_ip) {

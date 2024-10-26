@@ -1,3 +1,9 @@
+/***
+ * ISA PROJECT
+ * @file dns_packet.cpp
+ * @author Tímea Adamčíková (xadamc09)
+ */
+
 #include <iomanip>
 #include <netinet/udp.h>  
 #include <netinet/ether.h> 
@@ -77,7 +83,7 @@ void DNSPacket::parse(const u_char *packet, struct pcap_pkthdr *header) {
     
     time_t time = header->ts.tv_sec; 
 
-    std::tm* time_info = std::localtime(&time); // TODO localtime?
+    std::tm* time_info = std::localtime(&time);
     char buffer[20]; 
     std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", time_info);
     std::string formatted_time(buffer);
@@ -110,7 +116,7 @@ void DNSPacket::parse(const u_char *packet, struct pcap_pkthdr *header) {
     
     DNSHeader *dns_header;
     if (src_port != DNS_PORT && dst_port != DNS_PORT) {
-        // TODO not a DNS packet - raise DNSPacketException
+        // not a DNS packet
         throw IgnorePacket();
     }
 
@@ -160,5 +166,45 @@ void DNSPacket::print_verbose() {
     std::cout << "Identifier: 0x" << std::setfill ('0') << std::setw(4) << std::hex << this->identifier << std::endl;
     std::cout << "Flags: QR=" << std::dec << this->qr << ", OPCODE=" << this->opcode << ", AA=" << this->aa << ", TC=" << this->tc 
     << ", RD=" << this->rd << ", RA=" << this->ra << ", AD=" << this->ra << ", CD=" << this->cd << ", RCODE=" << this->rcode << std::endl << std::endl;  
-    // TODO MORE
+
+    // print sections
+    if (this->sections->question_num != 0) {
+        std::cout << "[Question Section]" << std::endl;
+
+        for (const auto& question : this->sections->questions) {
+            std::cout << question.qname << " " << question.qclass << " " << question.qtype << std::endl;
+        }
+
+        std::cout << std::endl;
+    }    
+
+    if (this->sections->answer_num != 0) {
+        std::cout << "[Answer Section]" << std::endl;
+
+        for (const auto& answer : this->sections->answers) {
+            std::visit(PrintVisitor{}, answer);
+        }
+
+        std::cout << std::endl;
+    }
+
+    if (this->sections->authority_num != 0) {
+        std::cout << "[Authority Section]" << std::endl;
+
+        for (const auto& authority : this->sections->authorities) {
+            std::visit(PrintVisitor{}, authority);
+        }
+
+        std::cout << std::endl;
+    }
+
+    if (this->sections->additional_num != 0) {
+        std::cout << "[Additional Section]" << std::endl;
+
+        for (const auto& additional : this->sections->additionals) {
+            std::visit(PrintVisitor{}, additional);
+        }
+    }
+
+    std::cout << "====================" << std::endl;
 }

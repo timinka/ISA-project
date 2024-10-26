@@ -1,3 +1,9 @@
+/***
+ * ISA PROJECT
+ * @file dns_sections.cpp
+ * @author Tímea Adamčíková (xadamc09)
+ */
+
 #include <iostream>
 #include <arpa/inet.h>
 #include "dns_sections.h"
@@ -42,36 +48,47 @@ std::string DNSSections::get_type(uint16_t type) {
     }
 }
 
+std::string DNSSections::get_class(uint16_t aclass) {
+    switch (aclass) {
+        case 1:
+            return "IN";
+        case 2:
+            return "CS";
+        case 3:
+            return "CH";
+        case 4:
+            return "HS";
+        default:
+            return "Unkown";
+    }
+}
+
 std::string DNSSections::tokens_to_string(uint8_t** current_ptr) { // TODO should be trailing dot removed??????
     std::string name = "";
-    bool should_break = false;
+
     while (1) {
         uint8_t tokens_count = (*current_ptr)[0];
+
+        if (tokens_count  == 0xC0) {
+            uint8_t name_offset = *(*current_ptr + 1); 
+            *current_ptr += 2;
+            
+            uint8_t* name_begin = this->dns_packet_begin + name_offset;
+            name += tokens_to_string(&name_begin); // TODO better check me
+            break;
+        }
+
         *current_ptr = *current_ptr + 1;
         if (tokens_count == 0) {
             break;
         }
         for(uint8_t processed_tokens = 0; processed_tokens < tokens_count; processed_tokens++) {
-            if ((*current_ptr)[0] == 0xC0) {
-                uint8_t name_offset = *(*current_ptr + 1); 
-                *current_ptr += 2;
-                
-                uint8_t* name_begin = this->dns_packet_begin + name_offset;
-                name += tokens_to_string(&name_begin); // TODO better check me
-                should_break = true;
-                break;
-            } else {
-                name += (*current_ptr)[0];
-                *current_ptr = *current_ptr + 1;
-            }
+            name += (*current_ptr)[0];
+            *current_ptr = *current_ptr + 1;
         }
         name += ".";
-
-        if (should_break) {
-            break;
-        }
     }
-    name.pop_back(); // remove trailing dot
+    // name.pop_back(); // remove trailing dot
     return name;
 }
 
@@ -93,23 +110,22 @@ void DNSSections::process_questions() {
         uint16_t *qclass = (uint16_t *)this->current_pointer;
         this->current_pointer += 2;
 
-        DNSQuestion question = {.qname=qname, .qtype=qtype, .qclass=ntohs(*qclass)};
+        DNSQuestion question = {.qname=qname, .qtype=qtype, .qclass=this->get_class(ntohs(*qclass))};
         this->questions.push_back(question);
-        std::cout << "QNAME=" << question.qname << std::endl;
-        std::cout << "QTYPE=" << question.qtype << std::endl;
-        std::cout << "QCLASS=" << question.qclass << std::endl;
     }
+
+    this->question_num = this->questions.size();
 }
 
-std::vector<std::variant<DNSRecord, dnsMX, dnsSOA>> DNSSections::process_other_sections(int* record_num) {
+std::vector<std::variant<DNSRecord, dnsMX, dnsSOA, dnsSRV>> DNSSections::process_other_sections(int* record_num) {
     // process records
-    std::vector<std::variant<DNSRecord, dnsMX, dnsSOA>> records;
+    std::vector<std::variant<DNSRecord, dnsMX, dnsSOA, dnsSRV>> records;
 
     for(int i = 0; i < *record_num; i++) {
-        std::cout << "Processing A" << i << std::endl;
         std::string name = "";
-        if (this->current_pointer[0] == 0xC0) {
-            uint8_t name_offset = *(this->current_pointer + 1); 
+        // TODO CHECK ME
+        if ((this->current_pointer[0] & 0xC0) == 0xC0) { // check if it is pointer
+            uint8_t name_offset = ((this->current_pointer[0] & 0x3F) << 8) | this->current_pointer[1];
             this->current_pointer += 2;
             
             uint8_t* name_begin = this->dns_packet_begin + name_offset;
@@ -129,7 +145,6 @@ std::vector<std::variant<DNSRecord, dnsMX, dnsSOA>> DNSSections::process_other_s
             uint16_t* data_length = (uint16_t *)this->current_pointer;
             this->current_pointer += 2;
             this->current_pointer += ntohs(*data_length);
-            std::cout << "hereeeeeeeeeeeeee????" << ntohs(*type_value) << std::endl << std::endl;
             continue;
         }
 
@@ -143,35 +158,23 @@ std::vector<std::variant<DNSRecord, dnsMX, dnsSOA>> DNSSections::process_other_s
         this->current_pointer += 2;
 
         std::string rdata;
-        std::cout << "hereeeeeeeeeeeeee horeeee: " << type << std::endl << std::endl;
 
         if (type == "MX") {
             uint16_t *preference = (uint16_t *)this->current_pointer;
             this->current_pointer += 2;
             std::string rdata = tokens_to_string(&this->current_pointer);
-            dnsMX mx_record = {.name=name, .type=type, .aclass=ntohs(*aclass), .ttl=ntohl(*ttl), .preference=ntohs(*preference), .rdata=rdata};
+            dnsMX mx_record = {.name=name, .type=type, .aclass=this->get_class(ntohs(*aclass)), .ttl=ntohl(*ttl), .preference=ntohs(*preference), .rdata=rdata};
             records.push_back(mx_record);
-
-            std::cout << "NAME=" << mx_record.name << std::endl;
-            std::cout << "TYPE=" << mx_record.type << std::endl;
-            std::cout << "CLASS=" << mx_record.aclass << std::endl;
-            std::cout << "TTL=" << mx_record.ttl << std::endl;
-            std::cout << "PREFERENCE=" << mx_record.preference << std::endl;
-            std::cout << "RDATA=" << mx_record.rdata << std::endl << std::endl;
             continue;
         } else if (type == "A") {
-            std::cout << "hereeeeeeeeeeeeee: " << type << std::endl << std::endl;
-
             char ip[INET_ADDRSTRLEN];
             const char* result = inet_ntop(AF_INET, (void*)this->current_pointer, ip, sizeof(ip));
             rdata = std::string(result == nullptr ? "" : result);
-            std::cout << "ipv4=====================" << rdata << std::endl << std::endl;
-
             this->current_pointer += 4;
         } else if (type == "AAAA") {
             char ip[INET6_ADDRSTRLEN];
             const char* result = inet_ntop(AF_INET6, (void*)this->current_pointer, ip, sizeof(ip));
-            rdata = std::string(result == nullptr? "" : result);
+            rdata = std::string(result == nullptr ? "" : result);
             this->current_pointer += 16;
         } else if (type == "SOA") {
             std::string mname = tokens_to_string(&this->current_pointer);
@@ -187,35 +190,31 @@ std::vector<std::variant<DNSRecord, dnsMX, dnsSOA>> DNSSections::process_other_s
             uint32_t *minimum_ttl = (uint32_t *)this->current_pointer;
             this->current_pointer += 4;
 
-            dnsSOA soa_record = {.name=name, .type=type, .aclass=ntohs(*aclass), .ttl=ntohl(*ttl), .mname=mname, .rname=rname,
+            dnsSOA soa_record = {.name=name, .type=type, .aclass=this->get_class(ntohs(*aclass)), .ttl=ntohl(*ttl), .mname=mname, .rname=rname,
                                 .serial=ntohl(*serial_number), .refresh=ntohl(*refresh_interval), .retry=ntohl(*retry_interval), 
                                 .expire=ntohl(*expire_limit), .minimum_ttl=ntohl(*minimum_ttl)};
             records.push_back(soa_record);
+            continue;
+        } else if (type == "SRV") {
+            uint16_t *priority = (uint16_t *)this->current_pointer;
+            this->current_pointer += 2;
+            uint16_t *weigth = (uint16_t *)this->current_pointer;
+            this->current_pointer += 2;
+            uint16_t *port = (uint16_t *)this->current_pointer;
+            this->current_pointer += 2;
+            std::string target = tokens_to_string(&this->current_pointer);
 
-            std::cout << "NAME=" << soa_record.name << std::endl;
-            std::cout << "TYPE=" << soa_record.type << std::endl;
-            std::cout << "CLASS=" << soa_record.aclass << std::endl;
-            std::cout << "TTL=" << soa_record.ttl << std::endl;
-            std::cout << "MNAME=" << soa_record.mname << std::endl;
-            std::cout << "RNAME=" << soa_record.rname << std::endl;
-            std::cout << "SERIAL=" << soa_record.serial << std::endl;
-            std::cout << "REFRESH=" << soa_record.refresh << std::endl;
-            std::cout << "RETRY=" << soa_record.retry << std::endl;
-            std::cout << "EXPIRE=" << soa_record.expire << std::endl;
-            std::cout << "MINIMUM TTL=" << soa_record.minimum_ttl << std::endl << std::endl;
+            dnsSRV record = {.name=name, .type=type, .aclass=this->get_class(ntohs(*aclass)), .ttl=ntohl(*ttl), .priority=ntohs(*priority), .weight=ntohs(*weigth),
+                            .port=ntohs(*port), .target=target};
+            
+            records.push_back(record);
             continue;
         } else {
             rdata = tokens_to_string(&this->current_pointer);
         }
 
-        DNSRecord record = {.name=name, .type=type, .aclass=ntohs(*aclass), .ttl=ntohl(*ttl), .rdata=rdata};
+        DNSRecord record = {.name=name, .type=type, .aclass=this->get_class(ntohs(*aclass)), .ttl=ntohl(*ttl), .rdata=rdata};
         records.push_back(record);
-
-        std::cout << "NAME=" << record.name << std::endl;
-        std::cout << "TYPE=" << record.type << std::endl;
-        std::cout << "CLASS=" << record.aclass << std::endl;
-        std::cout << "TTL=" << record.ttl << std::endl;
-        std::cout << "RDATA=" << record.rdata << std::endl << std::endl;
     }
 
     *record_num = records.size();

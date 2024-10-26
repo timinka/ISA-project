@@ -1,3 +1,9 @@
+/***
+ * ISA PROJECT
+ * @file dns_packet.h
+ * @author Tímea Adamčíková (xadamc09)
+ */
+
 #ifndef XADAMC09_ISA_DNS_PACKET
 #define XADAMC09_ISA_DNS_PACKET
 

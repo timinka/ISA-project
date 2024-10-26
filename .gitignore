@@ -1,3 +1,4 @@
 dns-monitor
 *.pcap
 .vscode
+*.txt

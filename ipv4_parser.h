@@ -1,11 +1,11 @@
+/***
+ * ISA PROJECT
+ * @file ipv4_parser.h
+ * @author Tímea Adamčíková (xadamc09)
+ */
+
 #ifndef XADAMC09_ISA_IPV4_PARSER_H
 #define XADAMC09_ISA_IPV4_PARSER_H
-
-#include <stdint.h>
-#include <string>
-#include <iostream>
-#include <arpa/inet.h>
-#include <netinet/in.h>
 
 const size_t protocol_offset = 9;
 const size_t ipv4_address_size = 4;

@@ -1,3 +1,13 @@
+/***
+ * ISA PROJECT
+ * @file ipv6_parser.cpp
+ * @author Tímea Adamčíková (xadamc09)
+ */
+
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <iostream>
+
 #include "ipv6_parser.h"
 
 std::string parse_ipv6_address(uint8_t* raw_ip) {

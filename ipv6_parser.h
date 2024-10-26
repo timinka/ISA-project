@@ -1,9 +1,12 @@
+/***
+ * ISA PROJECT
+ * @file ipv6_parser.h
+ * @author Tímea Adamčíková (xadamc09)
+ */
+
 #ifndef XADAMC09_ISA_IPV6_PARSER_H
 #define XADAMC09_ISA_IPV6_PARSER_H
 
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <iostream>
 
 const size_t next_header_offset = 6;
 const size_t ipv6_header_size = 40;

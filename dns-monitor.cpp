@@ -1,51 +1,17 @@
+/***
+ * ISA PROJECT
+ * @file dns-monitor.cpp
+ * @author Tímea Adamčíková (xadamc09)
+ */
+
 #include <stdio.h>
 #include <iostream>
 #include <unistd.h>
 #include <pcap/pcap.h>
 #include "dns_packet.h"
+#include "my_exception.h"
 
 using namespace std;
-
-// void print_packet(const u_char *packet, struct pcap_pkthdr packet_header) {
-//     std::cout << "Packet length: " << packet_header.len << " bytes\n";
-//     std::cout << "Captured length: " << packet_header.caplen << " bytes\n";
-//     std::cout << "Timestamp: " << packet_header.ts.tv_sec << "." << packet_header.ts.tv_usec << "\n";
-
-//     // Print the packet content in hex format
-//     std::cout << "Packet content (hex):\n";
-//     for (u_int i = 0; i < packet_header.caplen; i++) {
-//         std::cout << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(packet[i]);
-//         if ((i + 1) % 16 == 0)
-//             std::cout << "\n";  // New line every 16 bytes for readability
-//         else
-//             std::cout << " ";
-//     }
-
-//     std::cout << "\n\n";
-// }
-
-
-
-// void parse_ip(const u_char *packet) {
-//     struct ip *ip_header = (struct ip *)(packet + sizeof(struct ether_header));
-//     char src_ip[INET_ADDRSTRLEN];
-//     char dst_ip[INET_ADDRSTRLEN];
-
-//     // Convert IP addresses to human-readable form
-//     inet_ntop(AF_INET, &(ip_header->ip_src), src_ip, INET_ADDRSTRLEN);
-//     inet_ntop(AF_INET, &(ip_header->ip_dst), dst_ip, INET_ADDRSTRLEN);
-
-//     std::cout << "IP Header:\n";
-//     std::cout << "  Source IP: " << src_ip << "\n";
-//     std::cout << "  Destination IP: " << dst_ip << "\n";
-//     std::cout << "  Protocol: " << static_cast<int>(ip_header->ip_p) << "\n";  // IP protocol (e.g., TCP=6, UDP=17)
-
-//     if (ip_header->ip_p == IPPROTO_TCP) {
-//         std::cout << "  Protocol: TCP\n";
-//     } else if (ip_header->ip_p == IPPROTO_UDP) {
-//         std::cout << "  Protocol: UDP\n";
-//     }
-// }
 
 int main (int argc, char **argv) {
     char opt;
@@ -119,14 +85,16 @@ int main (int argc, char **argv) {
         const u_char *packet; 
 
         while (pcap_next_ex(handle, &header, &packet) >= 0) {
-            // try:
+            try {
                 dns_packet::DNSPacket my_instance(packet, header, verbose);
                 if (verbose) {
                     my_instance.print_verbose();
                 } else {
                     my_instance.print_simple();
                 }
-            // catch ...
+            } catch (const IgnorePacket& e) {
+                continue;
+            }
         }
 
         pcap_close(handle);

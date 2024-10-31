@@ -29,6 +29,11 @@ struct DNSRecord {
     void print() const {
         std::cout << name << " " << ttl << " " << aclass << " " << type << " " << rdata << std::endl;
     }
+    std::string get_name_rdata() const {
+        std::string output_name = name;
+        output_name.pop_back();
+        return output_name + " " + rdata;
+    }
 };
 
 struct dnsMX {
@@ -95,9 +100,13 @@ namespace dns_sections {
             std::string tokens_to_string(uint8_t** current_pointer);
             std::string get_type(uint16_t type);
             std::string get_class(uint16_t aclass);
+            bool t_mode, d_mode;
+            std::string translations_file, domains_file;
+            void add_translation(DNSRecord record);
 
         public:
-            DNSSections(int questions, int answers, int authority, int additional, uint8_t* pointer, uint8_t* dns_packet_begin);
+            DNSSections(int questions, int answers, int authority, int additional, uint8_t* pointer, uint8_t* dns_packet_begin,
+                        bool t_mode, std::string translations_file, bool d_mode, std::string domains_file);
             int question_num, answer_num, authority_num, additional_num;
             std::vector<DNSQuestion> questions;
             std::vector<std::variant<DNSRecord, dnsMX, dnsSOA, dnsSRV>> answers;

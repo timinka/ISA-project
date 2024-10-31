@@ -6,18 +6,24 @@
 
 #include <iostream>
 #include <arpa/inet.h>
+#include <fstream>
 #include "dns_sections.h"
 #include "my_exception.h"
 
 using namespace dns_sections;
 
-DNSSections::DNSSections(int questions, int answers, int authority, int additional, uint8_t* pointer, uint8_t* dns_packet_begin) {
+DNSSections::DNSSections(int questions, int answers, int authority, int additional, uint8_t* pointer, uint8_t* dns_packet_begin,
+                        bool t_mode, std::string translations_file, bool d_mode, std::string domains_file) {
     this->question_num = questions;
     this->answer_num = answers;
     this->authority_num = authority;
     this->additional_num = additional;
     this->current_pointer = pointer;
     this->dns_packet_begin = dns_packet_begin;
+    this->t_mode = t_mode;
+    this->translations_file = translations_file;
+    this->d_mode = d_mode;
+    this->domains_file = domains_file;
 
     this->process_questions();
 
@@ -61,6 +67,38 @@ std::string DNSSections::get_class(uint16_t aclass) {
         default:
             return "Unkown";
     }
+}
+
+void DNSSections::add_translation(DNSRecord record) {
+    std::ifstream file(this->translations_file);
+    // structured translation
+    std::string new_translation = record.get_name_rdata();
+    bool first_translation = true;
+
+    if (file.is_open()) {
+        std::string translation;
+        // read if treanslation is already written
+        while (getline(file, translation)) {
+            first_translation = false;
+            if (new_translation == translation) {
+                return;
+            }
+        }
+        file.close();
+    } else {
+        std::cout << "cannot open file" << std::endl;
+    }
+
+    std::ofstream outfile;
+    // add new translation
+    outfile.open(this->translations_file, std::ios_base::app);
+    // do not write new line for the first translation
+    if (first_translation) {
+        outfile << new_translation;    
+    } else {
+        outfile << std::endl << new_translation;
+    }
+    outfile.close();
 }
 
 std::string DNSSections::tokens_to_string(uint8_t** current_ptr) { // TODO should be trailing dot removed??????
@@ -124,10 +162,10 @@ std::vector<std::variant<DNSRecord, dnsMX, dnsSOA, dnsSRV>> DNSSections::process
     for(int i = 0; i < *record_num; i++) {
         std::string name = "";
         // TODO CHECK ME
-        if ((this->current_pointer[0] & 0xC0) == 0xC0) { // check if it is pointer
-            uint8_t name_offset = ((this->current_pointer[0] & 0x3F) << 8) | this->current_pointer[1];
-            this->current_pointer += 2;
-            
+        if ((this->current_pointer[0] & 0xC0) == 0xC0) { // check if it is a pointer (C0 or C1)
+            uint16_t name_offset = ((this->current_pointer[0] & 0x3F) << 8) | this->current_pointer[1];
+            this->current_pointer += 2;    
+
             uint8_t* name_begin = this->dns_packet_begin + name_offset;
             name = tokens_to_string(&name_begin); // TODO better check me
         } else {
@@ -214,6 +252,11 @@ std::vector<std::variant<DNSRecord, dnsMX, dnsSOA, dnsSRV>> DNSSections::process
         }
 
         DNSRecord record = {.name=name, .type=type, .aclass=this->get_class(ntohs(*aclass)), .ttl=ntohl(*ttl), .rdata=rdata};
+
+        if (this->t_mode && (type == "A" || type == "AAAA")) {
+            this->add_translation(record);
+        }
+
         records.push_back(record);
     }
 

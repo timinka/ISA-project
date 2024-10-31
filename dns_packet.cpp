@@ -28,6 +28,17 @@ struct DNSHeader {
     uint16_t additional_count; 
 };
 
+DNSPacket::DNSPacket(const u_char *packet, struct pcap_pkthdr *header, int dtl, bool verbose, 
+                        bool t_mode, std::string translations_file, bool d_mode, std::string domains_file) {
+    this->verbose = verbose;
+    this->t_mode = t_mode;
+    this->translations_file = translations_file;
+    this->d_mode = d_mode;
+    this->domains_file = domains_file;
+    this->datalink = dtl;
+    parse(packet, header);
+}
+
 // TODO change tmp functions
 bool get_qr(uint16_t all_flags) {
     return (all_flags >> 15) & 1;
@@ -65,19 +76,24 @@ int get_rcode(uint16_t all_flags) {
     return all_flags & 0xF;
 }
 
-DNSPacket::DNSPacket(const u_char* packet, struct pcap_pkthdr *header, bool verbose) {
-    this->verbose = verbose;
-    parse(packet, header);
-}
-
 uint16_t DNSPacket::get_port_number(uint8_t* raw_port) {
     return ntohs(*reinterpret_cast<uint16_t*>(raw_port));
 }
 
 void DNSPacket::parse(const u_char *packet, struct pcap_pkthdr *header) {
-    struct ether_header *eth_header = (struct ether_header *)packet;
-    uint8_t* ip_header = (uint8_t*)(packet + sizeof(struct ether_header));
-    uint16_t type = ntohs(eth_header->ether_type); 
+    uint8_t* ip_header;
+    uint16_t protocol_type;
+
+    if (this->datalink == DLT_EN10MB) { // ethernet
+        struct ether_header *eth_header = (struct ether_header *)packet;
+        ip_header = (uint8_t*)(packet + sizeof(struct ether_header));
+        protocol_type = ntohs(eth_header->ether_type); 
+    } else { // linux cooked
+        packet += 12;
+        uint16_t *type = (uint16_t*)packet;
+        ip_header = (uint8_t*)(packet + 2);
+    }
+    
     uint8_t protocol;
     uint8_t* payload;
     
@@ -90,16 +106,18 @@ void DNSPacket::parse(const u_char *packet, struct pcap_pkthdr *header) {
     this->timestamp = formatted_time;
 
     // IPv4 or IPv6
-    if (type == ipv6_type) {
+    if (protocol_type == ipv6_type) {
         this->src_ip = ipv6_src(ip_header);
         this->dst_ip = ipv6_dst(ip_header);
         protocol = get_next_header_from_ipv6(ip_header);
         payload = get_payload_ipv6(ip_header);
-    } else if (type == ipv4_type) {
+    } else if (protocol_type == ipv4_type) {
         this->src_ip = ipv4_src(ip_header);
         this->dst_ip = ipv4_dst(ip_header);
         protocol = get_protocol(ip_header);
         payload = get_payload_ipv4(ip_header);
+    } else {
+        throw IgnorePacket();
     }
 
     // TODO change number for variable
@@ -107,7 +125,6 @@ void DNSPacket::parse(const u_char *packet, struct pcap_pkthdr *header) {
     if (protocol == 0x11) {
         this->protocol = "UDP";
     } else {
-        // protocol == 0x06 // TCP
         throw IgnorePacket();
     }
 
@@ -143,13 +160,10 @@ void DNSPacket::parse(const u_char *packet, struct pcap_pkthdr *header) {
     this->cd = get_cd(flags);
     this->rcode = get_rcode(flags);
 
-    if(!this->verbose) { // TODO
-        return; //  this is enough information for simple print
-    }
-
     uint8_t* current_pointer = dns_packet_begin + sizeof(DNSHeader); // poiter to start of Question/Answer/Authority/Additional section
 
-    this->sections = std::make_unique<dns_sections::DNSSections>(this->question_num, this->answer_num, this->authority_num, this->additional_num, current_pointer, dns_packet_begin);
+    this->sections = std::make_unique<dns_sections::DNSSections>(this->question_num, this->answer_num, this->authority_num, this->additional_num, current_pointer, 
+                            dns_packet_begin, this->t_mode, this->translations_file, this->d_mode, this->domains_file);
 }
 
 void DNSPacket::print_simple() {
@@ -206,5 +220,5 @@ void DNSPacket::print_verbose() {
         }
     }
 
-    std::cout << "====================" << std::endl;
+    std::cout << "====================" << std::endl << std::endl;
 }

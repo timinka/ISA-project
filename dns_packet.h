@@ -20,15 +20,18 @@ namespace dns_packet {
             uint16_t dst_port;
             uint16_t identifier;
             bool qr, aa, tc, rd, ra, ad, cd, verbose;
-            int opcode, rcode;
+            int opcode, rcode, datalink;
             int question_num, answer_num, authority_num, additional_num;
             std::string query_response, question_section, answer_section, authority_section, additional_section;
             void parse(const u_char *packet, struct pcap_pkthdr *header);
             uint16_t get_port_number(uint8_t* raw_port);
             std::unique_ptr<dns_sections::DNSSections> sections;
+            bool t_mode, d_mode;
+            std::string translations_file, domains_file;
 
         public:
-            DNSPacket(const u_char *packet, struct pcap_pkthdr *header, bool verbose);
+            DNSPacket(const u_char *packet, struct pcap_pkthdr *header, int dtl, bool verbose, 
+                        bool t_mode, std::string translations_file, bool d_mode, std::string domains_file);
             void print_simple();
             void print_verbose();
     };

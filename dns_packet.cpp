@@ -179,41 +179,35 @@ void DNSPacket::print_verbose() {
     std::cout << "DstPort: " <<  this->protocol << "/" << this->dst_port << std::endl;
     std::cout << "Identifier: 0x" << std::setfill ('0') << std::setw(4) << std::hex << this->identifier << std::endl;
     std::cout << "Flags: QR=" << std::dec << this->qr << ", OPCODE=" << this->opcode << ", AA=" << this->aa << ", TC=" << this->tc 
-    << ", RD=" << this->rd << ", RA=" << this->ra << ", AD=" << this->ra << ", CD=" << this->cd << ", RCODE=" << this->rcode << std::endl << std::endl;  
+    << ", RD=" << this->rd << ", RA=" << this->ra << ", AD=" << this->ra << ", CD=" << this->cd << ", RCODE=" << this->rcode << std::endl;  
 
     // print sections
     if (this->sections->question_num != 0) {
-        std::cout << "[Question Section]" << std::endl;
+        std::cout << std::endl << "[Question Section]" << std::endl;
 
         for (const auto& question : this->sections->questions) {
             std::cout << question.qname << " " << question.qclass << " " << question.qtype << std::endl;
         }
-
-        std::cout << std::endl;
     }    
 
     if (this->sections->answer_num != 0) {
-        std::cout << "[Answer Section]" << std::endl;
+        std::cout << std::endl << "[Answer Section]" << std::endl;
 
         for (const auto& answer : this->sections->answers) {
             std::visit(PrintVisitor{}, answer);
         }
-
-        std::cout << std::endl;
     }
 
     if (this->sections->authority_num != 0) {
-        std::cout << "[Authority Section]" << std::endl;
+        std::cout << std::endl << "[Authority Section]" << std::endl;
 
         for (const auto& authority : this->sections->authorities) {
             std::visit(PrintVisitor{}, authority);
         }
-
-        std::cout << std::endl;
     }
 
     if (this->sections->additional_num != 0) {
-        std::cout << "[Additional Section]" << std::endl;
+        std::cout << std::endl << "[Additional Section]" << std::endl;
 
         for (const auto& additional : this->sections->additionals) {
             std::visit(PrintVisitor{}, additional);

@@ -65,7 +65,7 @@ std::string DNSSections::get_class(uint16_t aclass) {
         case 4:
             return "HS";
         default:
-            return "Unkown";
+            return "Unknown";
     }
 }
 
@@ -77,7 +77,7 @@ void DNSSections::add_translation(DNSRecord record) {
 
     if (file.is_open()) {
         std::string translation;
-        // read if treanslation is already written
+        // read if translation is already written
         while (getline(file, translation)) {
             first_translation = false;
             if (new_translation == translation) {
@@ -86,7 +86,7 @@ void DNSSections::add_translation(DNSRecord record) {
         }
         file.close();
     } else {
-        std::cout << "cannot open file" << std::endl;
+        std::cerr << "cannot open file" << std::endl;
     }
 
     std::ofstream outfile;
@@ -97,6 +97,37 @@ void DNSSections::add_translation(DNSRecord record) {
         outfile << new_translation;    
     } else {
         outfile << std::endl << new_translation;
+    }
+    outfile.close();
+}
+// TODO check if file does exist
+void DNSSections::add_domain_name(std::string domain_name) {
+    std::ifstream file(this->domains_file);
+    bool first_domain_name = true;
+    domain_name.pop_back(); // remove trailing dot
+
+    if (file.is_open()) {
+        std::string domain_in_file;
+        // read if domain name is already written
+        while (getline(file, domain_in_file)) {
+            first_domain_name = false;
+            if (domain_name == domain_in_file) {
+                return;
+            }
+        }
+        file.close();
+    } else {
+        std::cerr << "Cannot open file" << std::endl;
+    }
+
+    std::ofstream outfile;
+    // add new domain name
+    outfile.open(this->domains_file, std::ios_base::app);
+    // do not write new line for the first domain name
+    if (first_domain_name) {
+        outfile << domain_name;    
+    } else {
+        outfile << std::endl << domain_name;
     }
     outfile.close();
 }
@@ -141,6 +172,7 @@ void DNSSections::process_questions() {
         try {
             qtype = this->get_type(ntohs(*qtype_value));
         } catch (const IgnoreRecord& e) {
+            // qtype is not supported
             this->current_pointer += 2;
             continue;
         }
@@ -150,6 +182,9 @@ void DNSSections::process_questions() {
 
         DNSQuestion question = {.qname=qname, .qtype=qtype, .qclass=this->get_class(ntohs(*qclass))};
         this->questions.push_back(question);
+        if (this->d_mode) {
+            this->add_domain_name(qname);
+        }
     }
 
     this->question_num = this->questions.size();
@@ -179,9 +214,11 @@ std::vector<std::variant<DNSRecord, dnsMX, dnsSOA, dnsSRV>> DNSSections::process
         try {
             type = this->get_type(ntohs(*type_value));
         } catch (const IgnoreRecord& e) {
+            // skipping record
             this->current_pointer += 6; 
             uint16_t* data_length = (uint16_t *)this->current_pointer;
             this->current_pointer += 2;
+            // move past data from record
             this->current_pointer += ntohs(*data_length);
             continue;
         }
@@ -203,6 +240,11 @@ std::vector<std::variant<DNSRecord, dnsMX, dnsSOA, dnsSRV>> DNSSections::process
             std::string rdata = tokens_to_string(&this->current_pointer);
             dnsMX mx_record = {.name=name, .type=type, .aclass=this->get_class(ntohs(*aclass)), .ttl=ntohl(*ttl), .preference=ntohs(*preference), .rdata=rdata};
             records.push_back(mx_record);
+
+            if (this->d_mode) {
+                this->add_domain_name(name);
+                this->add_domain_name(rdata);
+            }
             continue;
         } else if (type == "A") {
             char ip[INET_ADDRSTRLEN];
@@ -232,6 +274,12 @@ std::vector<std::variant<DNSRecord, dnsMX, dnsSOA, dnsSRV>> DNSSections::process
                                 .serial=ntohl(*serial_number), .refresh=ntohl(*refresh_interval), .retry=ntohl(*retry_interval), 
                                 .expire=ntohl(*expire_limit), .minimum_ttl=ntohl(*minimum_ttl)};
             records.push_back(soa_record);
+
+            if (this->d_mode) {
+               this->add_domain_name(name);
+               this->add_domain_name(mname);
+            }
+
             continue;
         } else if (type == "SRV") {
             uint16_t *priority = (uint16_t *)this->current_pointer;
@@ -246,6 +294,11 @@ std::vector<std::variant<DNSRecord, dnsMX, dnsSOA, dnsSRV>> DNSSections::process
                             .port=ntohs(*port), .target=target};
             
             records.push_back(record);
+
+            if (this->d_mode) {
+               this->add_domain_name(target);
+            }
+
             continue;
         } else {
             rdata = tokens_to_string(&this->current_pointer);
@@ -257,9 +310,17 @@ std::vector<std::variant<DNSRecord, dnsMX, dnsSOA, dnsSRV>> DNSSections::process
             this->add_translation(record);
         }
 
+        if (this->d_mode && (type != "A" && type != "AAAA")) {
+            this->add_domain_name(name);
+            this->add_domain_name(rdata);
+        } else if (this->d_mode) {
+            this->add_domain_name(name);
+        }
+
         records.push_back(record);
     }
 
+    // get number of supported records
     *record_num = records.size();
     return records;
 }

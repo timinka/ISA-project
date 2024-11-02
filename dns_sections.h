@@ -103,6 +103,7 @@ namespace dns_sections {
             bool t_mode, d_mode;
             std::string translations_file, domains_file;
             void add_translation(DNSRecord record);
+            void add_domain_name(std::string domain_name);
 
         public:
             DNSSections(int questions, int answers, int authority, int additional, uint8_t* pointer, uint8_t* dns_packet_begin,

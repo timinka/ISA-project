@@ -28,9 +28,8 @@ struct DNSHeader {
     uint16_t additional_count; 
 };
 
-DNSPacket::DNSPacket(const u_char *packet, struct pcap_pkthdr *header, int dtl, bool verbose, 
+DNSPacket::DNSPacket(const u_char *packet, struct pcap_pkthdr *header, int dtl, 
                         bool t_mode, std::string translations_file, bool d_mode, std::string domains_file) {
-    this->verbose = verbose;
     this->t_mode = t_mode;
     this->translations_file = translations_file;
     this->d_mode = d_mode;

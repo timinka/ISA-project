@@ -69,6 +69,21 @@ std::string DNSSections::get_class(uint16_t aclass) {
     }
 }
 
+
+void DNSSections::write_to_file(std::string file, bool first, std::string new_line) {
+    std::ofstream outfile;
+
+    outfile.open(file, std::ios_base::app);
+    // do not write new line for the first output
+    if (first) {
+        outfile << new_line;    
+    } else {
+        outfile << std::endl << new_line;
+    }
+    outfile.close();
+}
+
+
 void DNSSections::add_translation(DNSRecord record) {
     std::ifstream file(this->translations_file);
     // structured translation
@@ -89,18 +104,10 @@ void DNSSections::add_translation(DNSRecord record) {
         std::cerr << "cannot open file" << std::endl;
     }
 
-    std::ofstream outfile;
-    // add new translation
-    outfile.open(this->translations_file, std::ios_base::app);
-    // do not write new line for the first translation
-    if (first_translation) {
-        outfile << new_translation;    
-    } else {
-        outfile << std::endl << new_translation;
-    }
-    outfile.close();
+    this->write_to_file(this->translations_file, first_translation, new_translation);
 }
 // TODO check if file does exist
+
 void DNSSections::add_domain_name(std::string domain_name) {
     std::ifstream file(this->domains_file);
     bool first_domain_name = true;
@@ -120,30 +127,21 @@ void DNSSections::add_domain_name(std::string domain_name) {
         std::cerr << "Cannot open file" << std::endl;
     }
 
-    std::ofstream outfile;
-    // add new domain name
-    outfile.open(this->domains_file, std::ios_base::app);
-    // do not write new line for the first domain name
-    if (first_domain_name) {
-        outfile << domain_name;    
-    } else {
-        outfile << std::endl << domain_name;
-    }
-    outfile.close();
+    this->write_to_file(this->domains_file, first_domain_name, domain_name);
 }
 
-std::string DNSSections::tokens_to_string(uint8_t** current_ptr) { // TODO should be trailing dot removed??????
+std::string DNSSections::tokens_to_string(uint8_t** current_ptr) { 
     std::string name = "";
 
     while (1) {
         uint8_t tokens_count = (*current_ptr)[0];
 
-        if (tokens_count  == 0xC0) {
+        if (tokens_count  == 0xC0) { // poiter to another part of DNS packet
             uint8_t name_offset = *(*current_ptr + 1); 
             *current_ptr += 2;
             
             uint8_t* name_begin = this->dns_packet_begin + name_offset;
-            name += tokens_to_string(&name_begin); // TODO better check me
+            name += tokens_to_string(&name_begin); // read from pointer and add it to the name
             break;
         }
 
@@ -151,13 +149,16 @@ std::string DNSSections::tokens_to_string(uint8_t** current_ptr) { // TODO shoul
         if (tokens_count == 0) {
             break;
         }
+
+        // process tokens based on count
         for(uint8_t processed_tokens = 0; processed_tokens < tokens_count; processed_tokens++) {
             name += (*current_ptr)[0];
             *current_ptr = *current_ptr + 1;
         }
+        // add dot after counter
         name += ".";
     }
-    // name.pop_back(); // remove trailing dot
+
     return name;
 }
 
@@ -196,13 +197,14 @@ std::vector<std::variant<DNSRecord, dnsMX, dnsSOA, dnsSRV>> DNSSections::process
 
     for(int i = 0; i < *record_num; i++) {
         std::string name = "";
-        // TODO CHECK ME
+
+        // determine if name is pointer or not
         if ((this->current_pointer[0] & 0xC0) == 0xC0) { // check if it is a pointer (C0 or C1)
             uint16_t name_offset = ((this->current_pointer[0] & 0x3F) << 8) | this->current_pointer[1];
             this->current_pointer += 2;    
 
             uint8_t* name_begin = this->dns_packet_begin + name_offset;
-            name = tokens_to_string(&name_begin); // TODO better check me
+            name = tokens_to_string(&name_begin);
         } else {
             name = tokens_to_string(&this->current_pointer);
         }
@@ -234,6 +236,7 @@ std::vector<std::variant<DNSRecord, dnsMX, dnsSOA, dnsSRV>> DNSSections::process
 
         std::string rdata;
 
+        // process record based on record type (some are special)
         if (type == "MX") {
             uint16_t *preference = (uint16_t *)this->current_pointer;
             this->current_pointer += 2;
@@ -296,17 +299,20 @@ std::vector<std::variant<DNSRecord, dnsMX, dnsSOA, dnsSRV>> DNSSections::process
             records.push_back(record);
 
             if (this->d_mode) {
+                // add targer server to domain names
                this->add_domain_name(target);
             }
 
             continue;
         } else {
+            // default structure of DNS record
             rdata = tokens_to_string(&this->current_pointer);
         }
 
         DNSRecord record = {.name=name, .type=type, .aclass=this->get_class(ntohs(*aclass)), .ttl=ntohl(*ttl), .rdata=rdata};
 
         if (this->t_mode && (type == "A" || type == "AAAA")) {
+            // when translations mode is on write A and AAAA translations to file
             this->add_translation(record);
         }
 

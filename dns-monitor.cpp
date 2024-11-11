@@ -9,17 +9,13 @@
 #include <unistd.h>
 #include <pcap/pcap.h>
 #include <csignal>
+#include <fstream>
+
 #include "dns_packet.h"
 #include "my_exception.h"
 
-volatile sig_atomic_t stop = 0;
-pcap_t *handle;
-
-void signal_handler(int signal_num) { // TODO
-    stop = 1;
-    if (handle) {
-        pcap_breakloop(handle);
-    }
+void signal_handler(int signal_num) {
+    exit(0);
 }
 
 int handle_setup(pcap_t *handle, char *ERRBUF) {
@@ -54,6 +50,18 @@ int handle_setup(pcap_t *handle, char *ERRBUF) {
     pcap_freecode(&fp);
     return dtl;
 }
+
+
+bool prepare_file(std::string file) {
+    // prepare empty file or create new file
+    std::ofstream d_file(file, std::ios::trunc);
+    if (!d_file) {
+        std::cerr << "Cannot open " << file << "." << std::endl;
+        return false;
+    }
+    return true;
+}
+
 
 int main (int argc, char **argv) {
     char opt;
@@ -104,9 +112,8 @@ int main (int argc, char **argv) {
     }
 
     char ERRBUF[PCAP_ERRBUF_SIZE];
+    pcap_t *handle;
 
-
-    //
     if (use_file) {
         handle = pcap_open_offline(pcap_file, ERRBUF);
     } else if (use_interface) {
@@ -135,9 +142,19 @@ int main (int argc, char **argv) {
     struct pcap_pkthdr *header;  
     const u_char *packet; 
 
-    while (pcap_next_ex(handle, &header, &packet) >= 0 && !stop) {
+    if (d_mode && !prepare_file(domains_file)) {
+        pcap_close(handle);
+        return 1;
+    }
+
+    if (t_mode && !prepare_file(translations_file)) {
+        pcap_close(handle);
+        return 1;
+    }
+
+    while (pcap_next_ex(handle, &header, &packet) >= 0) {
         try {
-            dns_packet::DNSPacket my_instance(packet, header, dtl, verbose, t_mode, translations_file, d_mode, domains_file);
+            dns_packet::DNSPacket my_instance(packet, header, dtl, t_mode, translations_file, d_mode, domains_file);
             if (verbose) {
                 my_instance.print_verbose();
             } else {
@@ -147,7 +164,6 @@ int main (int argc, char **argv) {
             continue;
         }
     }
-
 
     pcap_close(handle);
     return 0;

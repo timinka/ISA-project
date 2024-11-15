@@ -12,5 +12,6 @@
 class IgnorePacket : public std::exception {};
 class IgnoreRecord : public std::exception {};
 class HandleSetUpErr : public std::exception {};
+class ArgParserError : public std::exception {};
 
 #endif

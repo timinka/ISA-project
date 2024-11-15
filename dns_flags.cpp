@@ -12,8 +12,6 @@ using namespace dns_flags;
 DNSFlags::DNSFlags(uint16_t flags) {
     this->flags = flags;
 
-    std::cout << "FLAGS =================" << flags << std::endl;
-
     // get flags separetely
     this->qr = get_qr();
     this->query_response = this->qr ? "R" : "Q";

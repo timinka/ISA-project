@@ -18,14 +18,6 @@
 
 using namespace dns_packet;
 
-struct DNSHeader {
-    uint16_t identifier;       
-    uint16_t flags;
-    uint16_t question_count; 
-    uint16_t answer_count;
-    uint16_t authority_count; 
-    uint16_t additional_count; 
-};
 
 DNSPacket::DNSPacket(const u_char *packet, struct pcap_pkthdr *header, int dtl, 
                         bool t_mode, std::string translations_file, bool d_mode, std::string domains_file) {
@@ -69,16 +61,16 @@ void DNSPacket::parse(const u_char *packet, struct pcap_pkthdr *header) {
     uint8_t protocol;
     uint8_t* payload;
     // IPv4 or IPv6
-    if (protocol_type == ipv6_type) {
-        this->src_ip = ipv6_src(ip_header);
-        this->dst_ip = ipv6_dst(ip_header);
-        protocol = get_next_header_from_ipv6(ip_header);
-        payload = get_payload_ipv6(ip_header);
-    } else if (protocol_type == ipv4_type) {
-        this->src_ip = ipv4_src(ip_header);
-        this->dst_ip = ipv4_dst(ip_header);
-        protocol = get_protocol(ip_header);
-        payload = get_payload_ipv4(ip_header);
+    if (protocol_type == ipv6_parser::ipv6_type) {
+        this->src_ip = ipv6_parser::ipv6_src(ip_header);
+        this->dst_ip = ipv6_parser::ipv6_dst(ip_header);
+        protocol = ipv6_parser::get_next_header_from_ipv6(ip_header);
+        payload = ipv6_parser::get_payload_ipv6(ip_header);
+    } else if (protocol_type == ipv4_parser::ipv4_type) {
+        this->src_ip = ipv4_parser::ipv4_src(ip_header);
+        this->dst_ip = ipv4_parser::ipv4_dst(ip_header);
+        protocol = ipv4_parser::get_protocol(ip_header);
+        payload = ipv4_parser::get_payload_ipv4(ip_header);
     } else {
         throw IgnorePacket();
     }

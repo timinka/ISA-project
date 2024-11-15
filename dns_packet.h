@@ -13,6 +13,26 @@
 #include "dns_sections.h"
 #include "dns_flags.h"
 
+/**
+ * @brief Representation of DNS header structure
+ * 
+ * - `identifier` - Identifier of DNS message
+ * - `flags` - Flags indicating properties of the DNS message
+ * - `question_count` - Number of questions in the DNS message
+ * - `answer_count` - Number of answer records in the DNS message
+ * - `authority_count` - Number of authority records in the DNS message
+ * - `additional_count` - Number of additional records in the DNS message
+ */
+struct DNSHeader {
+    uint16_t identifier;       
+    uint16_t flags;
+    uint16_t question_count; 
+    uint16_t answer_count;
+    uint16_t authority_count; 
+    uint16_t additional_count; 
+};
+
+
 namespace dns_packet {
     /**
      * @brief Class representing DNS packet

@@ -8,8 +8,8 @@ TARGET:= dns-monitor
 .PHONY: all
 all: $(TARGET)
 
-$(TARGET): *.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+$(TARGET):
+	$(CXX) $(CXXFLAGS) -o $@ *.cpp $(LDFLAGS)
 
 .PHONY: run
 run: all

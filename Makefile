@@ -1,7 +1,7 @@
 CXX := g++
-CXXFLAGS := -std=c++20
+# CXXFLAGS := -std=c++20
 # CXXFLAGS := -std=c++2a
-# CXXFLAGS := -std=c++20 -Wall -Wextra
+CXXFLAGS := -std=c++20 -Wall -Wextra
 LDFLAGS := -lpcap
 TARGET:= dns-monitor
 

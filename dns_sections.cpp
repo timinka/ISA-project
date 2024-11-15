@@ -230,8 +230,6 @@ std::vector<std::variant<DNSRecord, dnsMX, dnsSOA, dnsSRV>> DNSSections::process
 
         uint32_t *ttl = (uint32_t *)this->current_pointer;
         this->current_pointer += 4;
-
-        uint16_t *data_lenght = (uint16_t *)this->current_pointer;
         this->current_pointer += 2;
 
         std::string rdata;

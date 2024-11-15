@@ -8,7 +8,6 @@
 #include <netinet/udp.h>  
 #include <netinet/ether.h> 
 #include <arpa/inet.h> 
-#include <cstring>
 #include <pcap.h>
 #include "ipv6_parser.h"
 #include "ipv4_parser.h"
@@ -38,46 +37,11 @@ DNSPacket::DNSPacket(const u_char *packet, struct pcap_pkthdr *header, int dtl,
     parse(packet, header);
 }
 
-// TODO change tmp functions
-bool get_qr(uint16_t all_flags) {
-    return (all_flags >> 15) & 1;
-}
-
-int get_opcode(uint16_t all_flags) {
-    return (all_flags >> 11) & 0xF;
-}
-
-bool get_aa(uint16_t all_flags) {
-    return (all_flags >> 10) & 1; 
-}
-
-bool get_tc(uint16_t all_flags) {
-    return (all_flags >> 9) & 1;
-}
-
-bool get_rd(uint16_t all_flags) {
-    return (all_flags >> 8) & 1;
-}
-
-bool get_ra(uint16_t all_flags) {
-    return (all_flags >> 7) & 1;
-}
-
-bool get_ad(uint16_t all_flags) {
-    return (all_flags >> 5) & 1;
-}
-
-bool get_cd(uint16_t all_flags) {
-    return (all_flags >> 4) & 1;
-}
-
-int get_rcode(uint16_t all_flags) {
-    return all_flags & 0xF;
-}
 
 uint16_t DNSPacket::get_port_number(uint8_t* raw_port) {
     return ntohs(*reinterpret_cast<uint16_t*>(raw_port));
 }
+
 
 void DNSPacket::parse(const u_char *packet, struct pcap_pkthdr *header) {
     uint8_t* ip_header;
@@ -91,10 +55,8 @@ void DNSPacket::parse(const u_char *packet, struct pcap_pkthdr *header) {
         packet += 12;
         uint16_t *type = (uint16_t*)packet;
         ip_header = (uint8_t*)(packet + 2);
+        protocol_type = ntohs(*type);
     }
-    
-    uint8_t protocol;
-    uint8_t* payload;
     
     time_t time = header->ts.tv_sec; 
 
@@ -104,6 +66,8 @@ void DNSPacket::parse(const u_char *packet, struct pcap_pkthdr *header) {
     std::string formatted_time(buffer);
     this->timestamp = formatted_time;
 
+    uint8_t protocol;
+    uint8_t* payload;
     // IPv4 or IPv6
     if (protocol_type == ipv6_type) {
         this->src_ip = ipv6_src(ip_header);
@@ -146,18 +110,7 @@ void DNSPacket::parse(const u_char *packet, struct pcap_pkthdr *header) {
     this->identifier = ntohs(dns_header->identifier);
 
     uint16_t flags = ntohs(dns_header->flags);
-
-    // get flags separetely
-    this->qr = get_qr(flags);
-    this->query_response = this->qr ? "R" : "Q";
-    this->opcode = get_opcode(flags);
-    this->aa = get_aa(flags);
-    this->tc = get_tc(flags);
-    this->rd = get_rd(flags);
-    this->ra = get_ra(flags);
-    this->ad = get_ad(flags);
-    this->cd = get_cd(flags);
-    this->rcode = get_rcode(flags);
+    this->flags = std::make_unique<dns_flags::DNSFlags>(flags);
 
     uint8_t* current_pointer = dns_packet_begin + sizeof(DNSHeader); // poiter to start of Question/Answer/Authority/Additional section
 
@@ -166,7 +119,7 @@ void DNSPacket::parse(const u_char *packet, struct pcap_pkthdr *header) {
 }
 
 void DNSPacket::print_simple() {
-    std::cout << this->timestamp << " " << this->src_ip << " -> " << this->dst_ip << " (" << this->query_response << " " 
+    std::cout << this->timestamp << " " << this->src_ip << " -> " << this->dst_ip << " (" << this->flags->query_response << " " 
     << this->question_num << "/" << this->answer_num << "/" << this->authority_num << "/" << this->additional_num << ")" << std::endl; 
 }
 
@@ -177,8 +130,8 @@ void DNSPacket::print_verbose() {
     std::cout << "SrcPort: " << this->protocol << "/" << this->src_port << std::endl;
     std::cout << "DstPort: " <<  this->protocol << "/" << this->dst_port << std::endl;
     std::cout << "Identifier: 0x" << std::setfill ('0') << std::setw(4) << std::hex << this->identifier << std::endl;
-    std::cout << "Flags: QR=" << std::dec << this->qr << ", OPCODE=" << this->opcode << ", AA=" << this->aa << ", TC=" << this->tc 
-    << ", RD=" << this->rd << ", RA=" << this->ra << ", AD=" << this->ra << ", CD=" << this->cd << ", RCODE=" << this->rcode << std::endl;  
+    std::cout << "Flags: QR=" << std::dec << this->flags->qr << ", OPCODE=" << this->flags->opcode << ", AA=" << this->flags->aa << ", TC=" << this->flags->tc 
+    << ", RD=" << this->flags->rd << ", RA=" << this->flags->ra << ", AD=" << this->flags->ra << ", CD=" << this->flags->cd << ", RCODE=" << this->flags->rcode << std::endl;  
 
     // print sections
     if (this->sections->question_num != 0) {

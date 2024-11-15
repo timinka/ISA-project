@@ -14,8 +14,10 @@
 #include "dns_packet.h"
 #include "my_exception.h"
 
+pcap_t *handle;
+
 void signal_handler(int signal_num) {
-    exit(0);
+    pcap_breakloop(handle);
 }
 
 int handle_setup(pcap_t *handle, char *ERRBUF) {
@@ -59,6 +61,7 @@ bool prepare_file(std::string file) {
         std::cerr << "Cannot open " << file << "." << std::endl;
         return false;
     }
+    d_file.close();
     return true;
 }
 
@@ -112,7 +115,6 @@ int main (int argc, char **argv) {
     }
 
     char ERRBUF[PCAP_ERRBUF_SIZE];
-    pcap_t *handle;
 
     if (use_file) {
         handle = pcap_open_offline(pcap_file, ERRBUF);

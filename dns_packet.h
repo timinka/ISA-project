@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "dns_sections.h"
+#include "dns_flags.h"
 
 namespace dns_packet {
     /**
@@ -54,24 +55,6 @@ namespace dns_packet {
             uint16_t identifier;
 
             /**
-             * @brief DNS packet flags. 
-             * 
-             * qr - Query/Response, 
-             * aa - Authoritative Answer, 
-             * tc- Truncation, 
-             * rd - Recursion Desired, 
-             * ra - Recursion Available, 
-             * ad - Authentic Data, 
-             * cd - Checking Disabled
-             */
-            bool qr, aa, tc, rd, ra, ad, cd;
-
-            /**
-             * @brief DNS operation code (OPCODE) and response code (RCODE, indicating error/status)
-             */
-            int opcode, rcode;
-
-            /**
              * @brief Datalink identifier (ethernet or linux cooked)
              */
             int datalink;
@@ -81,11 +64,6 @@ namespace dns_packet {
              */
             int question_num, answer_num, authority_num, additional_num;
             
-            /**
-             * @brief Query or response in string format
-             */
-            std::string query_response;
-
             /**
              * @brief Parse all required information from packet
              * 
@@ -107,6 +85,11 @@ namespace dns_packet {
              * @brief Pointer to DNSSections class holding information about sections 
              */
             std::unique_ptr<dns_sections::DNSSections> sections;
+
+            /**
+             * @brief Pointer to DNSFlags class holding information about flags 
+             */
+            std::unique_ptr<dns_flags::DNSFlags> flags;
 
             /**
              * @brief Flags for translations and domain name modes

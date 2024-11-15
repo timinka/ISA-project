@@ -14,8 +14,10 @@ pcap_t *handler::handle = nullptr;
 
 
 void handler::signal_handler(int signal_num) {
-    if (handle) {
-        pcap_breakloop(handler::handle);
+    if (signal_num == SIGINT || signal_num == SIGTERM || signal_num == SIGQUIT) {
+        if (handle) {
+            pcap_breakloop(handler::handle);
+        }
     }
 }
 

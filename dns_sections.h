@@ -263,10 +263,9 @@ namespace dns_sections {
              * @brief Write output to file
              * 
              * @param file File to be written in
-             * @param first Flag if space should be or should be added
              * @param new_line Line to be added to file output
              */
-            void write_to_file(std::string file, bool first, std::string new_line);
+            void write_to_file(std::string file, std::string new_line);
 
         public:
             /**

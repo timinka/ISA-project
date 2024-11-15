@@ -4,6 +4,7 @@
  * @author Tímea Adamčíková (xadamc09)
  */
 
+#include <sys/socket.h>
 #include <stdint.h>
 #include <string>
 #include <iostream>

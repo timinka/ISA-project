@@ -5,8 +5,8 @@
  */
 
 #include <iomanip>
-#include <netinet/udp.h>  
-#include <netinet/ether.h> 
+#include <netinet/udp.h>
+#include <net/ethernet.h> 
 #include <arpa/inet.h> 
 #include <pcap.h>
 #include "ipv6_parser.h"

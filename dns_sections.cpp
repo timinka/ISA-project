@@ -4,6 +4,7 @@
  * @author Tímea Adamčíková (xadamc09)
  */
 
+#include <sys/socket.h>
 #include <iostream>
 #include <arpa/inet.h>
 #include <fstream>
@@ -70,16 +71,12 @@ std::string DNSSections::get_class(uint16_t aclass) {
 }
 
 
-void DNSSections::write_to_file(std::string file, bool first, std::string new_line) {
+void DNSSections::write_to_file(std::string file, std::string new_line) {
     std::ofstream outfile;
 
     outfile.open(file, std::ios_base::app);
     // do not write new line for the first output
-    if (first) {
-        outfile << new_line;    
-    } else {
-        outfile << std::endl << new_line;
-    }
+    outfile << new_line << '\n';
     outfile.close();
 }
 
@@ -88,13 +85,11 @@ void DNSSections::add_translation(DNSRecord record) {
     std::ifstream file(this->translations_file);
     // structured translation
     std::string new_translation = record.get_name_rdata();
-    bool first_translation = true;
 
     if (file.is_open()) {
         std::string translation;
         // read if translation is already written
         while (getline(file, translation)) {
-            first_translation = false;
             if (new_translation == translation) {
                 return;
             }
@@ -104,20 +99,18 @@ void DNSSections::add_translation(DNSRecord record) {
         std::cerr << "cannot open file" << std::endl;
     }
 
-    this->write_to_file(this->translations_file, first_translation, new_translation);
+    this->write_to_file(this->translations_file, new_translation);
 }
 // TODO check if file does exist
 
 void DNSSections::add_domain_name(std::string domain_name) {
     std::ifstream file(this->domains_file);
-    bool first_domain_name = true;
     domain_name.pop_back(); // remove trailing dot
 
     if (file.is_open()) {
         std::string domain_in_file;
         // read if domain name is already written
         while (getline(file, domain_in_file)) {
-            first_domain_name = false;
             if (domain_name == domain_in_file) {
                 return;
             }
@@ -127,7 +120,7 @@ void DNSSections::add_domain_name(std::string domain_name) {
         std::cerr << "Cannot open file" << std::endl;
     }
 
-    this->write_to_file(this->domains_file, first_domain_name, domain_name);
+    this->write_to_file(this->domains_file, domain_name);
 }
 
 std::string DNSSections::tokens_to_string(uint8_t** current_ptr) { 

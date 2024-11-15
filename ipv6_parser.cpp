@@ -4,6 +4,7 @@
  * @author Tímea Adamčíková (xadamc09)
  */
 
+#include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <iostream>

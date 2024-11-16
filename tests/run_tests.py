@@ -1,26 +1,24 @@
 import subprocess
 import os
 from pathlib import Path
-from typing import List, Tuple
 import filecmp
 
-def run_makefile():
-    original_dir = os.getcwd()
-    parent_dir = os.path.abspath(os.path.join(os.getcwd(), '..'))
-    os.chdir(parent_dir) # move to parent directory
+ROOT = Path(__file__).resolve().parent
+MAKEFILE_DIR = ROOT.parent
+EXECUTABLE = ROOT.parent / 'dns-monitor'
 
+class TestException(Exception):
+    pass
+
+def run_makefile():
+    os.chdir(MAKEFILE_DIR) # move to parent directory
     try:
         subprocess.run(['make'], text=True, capture_output=True, check=True)
-        print("Copilled successfully")
+        print("Copiled successfully")
     except subprocess.CalledProcessError as e:
-        print("Makefile failed!", e)
+        raise TestException("Makefile failed!") from e
     finally: 
-        os.chdir(original_dir)
-
-
-# def get_pcap_files() -> Tuple[List[str], List[str]]:
-def get_pcap_files() -> List[Path]:
-    return Path(__file__).resolve().parent.glob('*.pcap')
+        os.chdir(ROOT)
 
 
 def compare_files(out_file: Path, ref_file: Path):
@@ -29,22 +27,24 @@ def compare_files(out_file: Path, ref_file: Path):
 
 
 def run_tests_verbose():
-    parent_dir = os.path.abspath(os.path.join(os.getcwd(), '..'))
-    dns_monitor_executable = os.path.join(parent_dir, 'dns-monitor')
-    
-    for pcap_file in Path(__file__).resolve().parent.glob('*.pcap'):
-        res = subprocess.run([dns_monitor_executable, "-p", pcap_file, "-v"],
-                            check=True,  
-                            text=True,   
-                            capture_output=True  
-                            )
-        output_file = pcap_file.with_suffix('.out')
-        output_file.write_text(res.stdout)
-
-        compare_files(output_file, output_file.with_suffix('.ref'))
+    for pcap_file in ROOT.glob('*.pcap'):
+        try:
+            cmd = [EXECUTABLE, "-p", pcap_file, "-v"]
+            res = subprocess.run(cmd, check=True, text=True, capture_output=True)
+            output_file = pcap_file.with_suffix('.out')
+            output_file.write_text(res.stdout)
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to execute '{' '.join(cmd)}':", e)
+        else:
+            compare_files(output_file, output_file.with_suffix('.ref'))
 
 
 
 if __name__ == "__main__":
-    run_makefile()
-    run_tests_verbose()
+    try:
+        run_makefile()
+        run_tests_verbose()
+    except TestException as e:
+        print(e)
+    except Exception as e:
+        print("Something went wrong", e)

@@ -112,30 +112,30 @@ void DNSPacket::parse(const u_char *packet, struct pcap_pkthdr *header) {
 
 void DNSPacket::print_simple() {
     std::cout << this->timestamp << " " << this->src_ip << " -> " << this->dst_ip << " (" << this->flags->query_response << " " 
-    << this->question_num << "/" << this->answer_num << "/" << this->authority_num << "/" << this->additional_num << ")" << std::endl; 
+    << this->question_num << "/" << this->answer_num << "/" << this->authority_num << "/" << this->additional_num << ")" << "\n"; 
 }
 
 void DNSPacket::print_verbose() {
-    std::cout << std::dec << "Timestamp: " << this->timestamp << std::endl;
-    std::cout << "SrcIP: " << this->src_ip << std::endl;
-    std::cout << "DstIP: " << this->dst_ip << std::endl;
-    std::cout << "SrcPort: " << this->protocol << "/" << this->src_port << std::endl;
-    std::cout << "DstPort: " <<  this->protocol << "/" << this->dst_port << std::endl;
-    std::cout << "Identifier: 0x" << std::setfill ('0') << std::setw(4) << std::hex << this->identifier << std::endl;
+    std::cout << std::dec << "Timestamp: " << this->timestamp << "\n";
+    std::cout << "SrcIP: " << this->src_ip << "\n";
+    std::cout << "DstIP: " << this->dst_ip << "\n";
+    std::cout << "SrcPort: " << this->protocol << "/" << this->src_port << "\n";
+    std::cout << "DstPort: " <<  this->protocol << "/" << this->dst_port << "\n";
+    std::cout << "Identifier: 0x" << std::setfill ('0') << std::setw(4) << std::hex << this->identifier << "\n";
     std::cout << "Flags: QR=" << std::dec << this->flags->qr << ", OPCODE=" << this->flags->opcode << ", AA=" << this->flags->aa << ", TC=" << this->flags->tc 
-    << ", RD=" << this->flags->rd << ", RA=" << this->flags->ra << ", AD=" << this->flags->ra << ", CD=" << this->flags->cd << ", RCODE=" << this->flags->rcode << std::endl;  
+    << ", RD=" << this->flags->rd << ", RA=" << this->flags->ra << ", AD=" << this->flags->ad << ", CD=" << this->flags->cd << ", RCODE=" << this->flags->rcode << "\n";  
 
     // print sections
     if (this->sections->question_num != 0) {
-        std::cout << std::endl << "[Question Section]" << std::endl;
+        std::cout << "\n" << "[Question Section]" << "\n";
 
         for (const auto& question : this->sections->questions) {
-            std::cout << question.qname << " " << question.qclass << " " << question.qtype << std::endl;
+            std::cout << question.qname << " " << question.qclass << " " << question.qtype << "\n";
         }
     }    
 
     if (this->sections->answer_num != 0) {
-        std::cout << std::endl << "[Answer Section]" << std::endl;
+        std::cout << "\n" << "[Answer Section]" << "\n";
 
         for (const auto& answer : this->sections->answers) {
             std::visit(PrintVisitor{}, answer);
@@ -143,7 +143,7 @@ void DNSPacket::print_verbose() {
     }
 
     if (this->sections->authority_num != 0) {
-        std::cout << std::endl << "[Authority Section]" << std::endl;
+        std::cout << "\n" << "[Authority Section]" << "\n";
 
         for (const auto& authority : this->sections->authorities) {
             std::visit(PrintVisitor{}, authority);
@@ -151,12 +151,12 @@ void DNSPacket::print_verbose() {
     }
 
     if (this->sections->additional_num != 0) {
-        std::cout << std::endl << "[Additional Section]" << std::endl;
+        std::cout << "\n" << "[Additional Section]" << "\n";
 
         for (const auto& additional : this->sections->additionals) {
             std::visit(PrintVisitor{}, additional);
         }
     }
 
-    std::cout << "====================" << std::endl << std::endl;
+    std::cout << "====================" << "\n";
 }

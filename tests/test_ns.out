@@ -1,0 +1,26 @@
+Timestamp: 2024-11-16 16:38:51
+SrcIP: 192.168.0.89
+DstIP: 192.168.0.1
+SrcPort: UDP/51018
+DstPort: UDP/53
+Identifier: 0x0004
+Flags: QR=0, OPCODE=0, AA=0, TC=0, RD=1, RA=0, AD=0, CD=0, RCODE=0
+
+[Question Section]
+vut.cz. IN NS
+====================
+Timestamp: 2024-11-16 16:38:51
+SrcIP: 192.168.0.1
+DstIP: 192.168.0.89
+SrcPort: UDP/53
+DstPort: UDP/51018
+Identifier: 0x0004
+Flags: QR=1, OPCODE=0, AA=0, TC=0, RD=1, RA=1, AD=0, CD=0, RCODE=0
+
+[Question Section]
+vut.cz. IN NS
+
+[Answer Section]
+vut.cz. 5 IN NS pipit.cis.vutbr.cz.
+vut.cz. 5 IN NS rhino.cis.vutbr.cz.
+====================

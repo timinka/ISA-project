@@ -24,9 +24,13 @@ def run_makefile():
 def compare_files(out_file: Path, ref_file: Path):
     result = filecmp.cmp(out_file, ref_file)
     print(f"Comparing refrence file {ref_file.name} with {out_file.name} and the result is {result}")
+    if result:
+        # delete outpput when test performed sucessfully
+        os.remove(out_file)
 
 
 def run_tests_verbose():
+    print("Test verbose: ")
     for pcap_file in ROOT.glob('*.pcap'):
         try:
             cmd = [EXECUTABLE, "-p", pcap_file, "-v"]
@@ -36,14 +40,28 @@ def run_tests_verbose():
         except subprocess.CalledProcessError as e:
             print(f"Failed to execute '{' '.join(cmd)}':", e)
         else:
-            compare_files(output_file, output_file.with_suffix('.ref'))
+            compare_files(output_file, output_file.with_suffix('.ref-verbose'))
 
+
+def run_tests_non_verbose():
+    print("Test non-verbose: ")
+    for pcap_file in ROOT.glob('*.pcap'):
+        try:
+            cmd = [EXECUTABLE, "-p", pcap_file]
+            res = subprocess.run(cmd, check=True, text=True, capture_output=True)
+            output_file = pcap_file.with_suffix('.out')
+            output_file.write_text(res.stdout)
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to execute '{' '.join(cmd)}':", e)
+        else:
+            compare_files(output_file, output_file.with_suffix('.ref'))
 
 
 if __name__ == "__main__":
     try:
         run_makefile()
         run_tests_verbose()
+        run_tests_non_verbose()
     except TestException as e:
         print(e)
     except Exception as e:

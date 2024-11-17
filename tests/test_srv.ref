@@ -1,25 +1,2 @@
-Timestamp: 2024-11-16 16:50:57
-SrcIP: 192.168.0.89
-DstIP: 192.168.0.1
-SrcPort: UDP/64293
-DstPort: UDP/53
-Identifier: 0x0004
-Flags: QR=0, OPCODE=0, AA=0, TC=0, RD=1, RA=0, AD=0, CD=0, RCODE=0
-
-[Question Section]
-_ldap._tcp.google.com. IN SRV
-====================
-Timestamp: 2024-11-16 16:50:57
-SrcIP: 192.168.0.1
-DstIP: 192.168.0.89
-SrcPort: UDP/53
-DstPort: UDP/64293
-Identifier: 0x0004
-Flags: QR=1, OPCODE=0, AA=0, TC=0, RD=1, RA=1, AD=0, CD=0, RCODE=0
-
-[Question Section]
-_ldap._tcp.google.com. IN SRV
-
-[Answer Section]
-_ldap._tcp.google.com. 86358 IN SRV 5 0 389 ldap.google.com.
-====================
+2024-10-20 16:50:57 192.168.0.89 -> 192.168.0.1 (Q 1/0/0/0)
+2024-10-20 16:50:57 192.168.0.1 -> 192.168.0.89 (R 1/1/0/0)

@@ -1,4 +1,4 @@
-Timestamp: 2024-11-16 16:41:07
+Timestamp: 2024-10-20 16:41:07
 SrcIP: 192.168.0.89
 DstIP: 192.168.0.1
 SrcPort: UDP/57257
@@ -9,7 +9,7 @@ Flags: QR=0, OPCODE=0, AA=0, TC=0, RD=1, RA=0, AD=0, CD=0, RCODE=0
 [Question Section]
 vut.cz. IN SOA
 ====================
-Timestamp: 2024-11-16 16:41:07
+Timestamp: 2024-10-20 16:41:07
 SrcIP: 192.168.0.1
 DstIP: 192.168.0.89
 SrcPort: UDP/53

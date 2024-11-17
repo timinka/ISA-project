@@ -1,25 +1,2 @@
-Timestamp: 2024-11-16 16:54:05
-SrcIP: 192.168.0.89
-DstIP: 192.168.0.1
-SrcPort: UDP/53321
-DstPort: UDP/53
-Identifier: 0x0004
-Flags: QR=0, OPCODE=0, AA=0, TC=0, RD=1, RA=0, AD=0, CD=0, RCODE=0
-
-[Question Section]
-www.github.com. IN CNAME
-====================
-Timestamp: 2024-11-16 16:54:05
-SrcIP: 192.168.0.1
-DstIP: 192.168.0.89
-SrcPort: UDP/53
-DstPort: UDP/53321
-Identifier: 0x0004
-Flags: QR=1, OPCODE=0, AA=0, TC=0, RD=1, RA=1, AD=0, CD=0, RCODE=0
-
-[Question Section]
-www.github.com. IN CNAME
-
-[Answer Section]
-www.github.com. 2064 IN CNAME github.com.
-====================
+2024-10-20 16:54:05 192.168.0.89 -> 192.168.0.1 (Q 1/0/0/0)
+2024-10-20 16:54:05 192.168.0.1 -> 192.168.0.89 (R 1/1/0/0)

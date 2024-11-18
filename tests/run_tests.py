@@ -7,62 +7,38 @@ ROOT = Path(__file__).resolve().parent
 MAKEFILE_DIR = ROOT.parent
 EXECUTABLE = ROOT.parent / 'dns-monitor'
 
-class TestException(Exception):
-    pass
+import unittest
 
-def run_makefile():
-    os.chdir(MAKEFILE_DIR) # move to parent directory
-    try:
-        subprocess.run(['make'], text=True, capture_output=True, check=True)
-        print("Copiled successfully")
-    except subprocess.CalledProcessError as e:
-        raise TestException("Makefile failed!") from e
-    finally: 
-        os.chdir(ROOT)
+class Test(unittest.TestCase):
 
-
-def compare_files(out_file: Path, ref_file: Path):
-    result = filecmp.cmp(out_file, ref_file)
-    print(f"Comparing refrence file {ref_file.name} with {out_file.name} and the result is {result}")
-    if result:
-        # delete outpput when test performed sucessfully
-        os.remove(out_file)
-
-
-def run_tests_verbose():
-    print("Test verbose: ")
-    for pcap_file in ROOT.glob('*.pcap'):
+    @classmethod
+    def setUpClass(cls):
+        os.chdir(MAKEFILE_DIR) # move to parent directory
         try:
-            cmd = [EXECUTABLE, "-p", pcap_file, "-v"]
-            res = subprocess.run(cmd, check=True, text=True, capture_output=True)
-            output_file = pcap_file.with_suffix('.out')
-            output_file.write_text(res.stdout)
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to execute '{' '.join(cmd)}':", e)
-        else:
-            compare_files(output_file, output_file.with_suffix('.ref-verbose'))
+            subprocess.run(['make'], text=True, capture_output=True, check=True)
+        finally:
+            os.chdir(ROOT)
 
+    def dynamic_test(self, pcap_file: Path, use_verbose: bool):
+        cmd = [EXECUTABLE, "-p", pcap_file]
+        if use_verbose:
+            cmd += ["-v"]
+        res = subprocess.run(cmd, check=True, text=True, capture_output=True)
+        output_file = pcap_file.with_suffix('.out')
+        output_file.write_text(res.stdout)
+        suffix = '.ref-verbose' if use_verbose else '.ref'
+        result = filecmp.cmp(output_file, output_file.with_suffix(suffix=suffix))
+        output_file.unlink()
+        self.assertTrue(result)
 
-def run_tests_non_verbose():
-    print("Test non-verbose: ")
+if __name__ == '__main__':
+        
     for pcap_file in ROOT.glob('*.pcap'):
-        try:
-            cmd = [EXECUTABLE, "-p", pcap_file]
-            res = subprocess.run(cmd, check=True, text=True, capture_output=True)
-            output_file = pcap_file.with_suffix('.out')
-            output_file.write_text(res.stdout)
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to execute '{' '.join(cmd)}':", e)
-        else:
-            compare_files(output_file, output_file.with_suffix('.ref'))
+        for use_verbose in [False, True]:
+            name = f"test_{pcap_file.name}"
+            if use_verbose:
+                name += '_verbose'
+            setattr(Test, name, lambda self: self.dynamic_test(pcap_file, use_verbose))
 
+    unittest.main()
 
-if __name__ == "__main__":
-    try:
-        run_makefile()
-        run_tests_verbose()
-        run_tests_non_verbose()
-    except TestException as e:
-        print(e)
-    except Exception as e:
-        print("Something went wrong", e)

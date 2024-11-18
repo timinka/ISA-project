@@ -101,7 +101,7 @@ void DNSSections::add_translation(DNSRecord record) {
 
     this->write_to_file(this->translations_file, new_translation);
 }
-// TODO check if file does exist
+
 
 void DNSSections::add_domain_name(std::string domain_name) {
     std::ifstream file(this->domains_file);

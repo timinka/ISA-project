@@ -33,11 +33,8 @@ void handler::define_handle(arguments args) {
         std::signal(SIGTERM, signal_handler);
         std::signal(SIGQUIT, signal_handler);
 
-        // TODO
-        if ((handler::handle = pcap_open_live(args.interface.c_str(), BUFSIZ, 1, 1, ERRBUF)) == nullptr) {
-            handler::handle = pcap_open_live(args.interface.c_str(), BUFSIZ, 1, 0, ERRBUF);
-        }
-
+        int to_ms = 100; // TODO try me
+        handler::handle = pcap_open_live(args.interface.c_str(), BUFSIZ, 1, to_ms, ERRBUF);
     }
 
     int dtl; // datalink type

@@ -86,7 +86,7 @@ struct dnsMX {
      * @brief Print formated output of MX record
      */
     void print() const {
-        std::cout << name << " " << ttl << " " << aclass << " " << type << " " << preference << " " << rdata << std::endl; // TODO CHECK
+        std::cout << name << " " << ttl << " " << aclass << " " << type << " " << preference << " " << rdata << std::endl; 
     }
 };
 
@@ -124,7 +124,7 @@ struct dnsSOA {
      */
     void print() const {
         std::cout << name << " " << ttl << " " << aclass << " " << type << " " << mname << " " << rname << " " << serial << " " << refresh << " " 
-        << retry << " " << expire << " " << minimum_ttl << std::endl; // TODO CHECK
+        << retry << " " << expire << " " << minimum_ttl << std::endl; 
     }
 };
 
@@ -155,7 +155,7 @@ struct dnsSRV {
      * @brief Print formated output of SRV record
      */
     void print() const {
-        std::cout << name << " " << ttl << " " << aclass << " " << type << " " << priority << " " << weight << " " << port << " " << target << std::endl; // TODO CHECK
+        std::cout << name << " " << ttl << " " << aclass << " " << type << " " << priority << " " << weight << " " << port << " " << target << std::endl; 
     }
 };
 
